@@ -1,9 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const STORAGE_KEY = "shrimp-weight-tables";
+const DARK_MODE_KEY = "shrimp-weight-dark-mode";
+const FONT_SIZE_KEY = "shrimp-weight-font-size";
 
-const INITIAL_ROWS = 6;
+const INITIAL_ROWS = 5;
 const INITIAL_COLUMNS = 6;
+
+const FONT_SIZE_OPTIONS = [
+  { key: "sm", label: "Nhỏ", px: 14 },
+  { key: "md", label: "Vừa", px: 16 },
+  { key: "lg", label: "Lớn", px: 18 },
+  { key: "xl", label: "Rất lớn", px: 20 },
+];
 
 function createEmptyRow(columnCount) {
   return Array(columnCount).fill("");
@@ -121,6 +130,9 @@ const focusNextInput = (tableId, rowIndex, columnIndex) => {
         shadow-sm
 
         sm:p-0
+
+        dark:border-gray-700
+        dark:bg-gray-800
       "
     >
       {/* =========================================
@@ -146,6 +158,8 @@ const focusNextInput = (tableId, rowIndex, columnIndex) => {
               text-gray-900
 
               sm:text-lg
+
+              dark:text-gray-100
             "
           >
             Hàng {tableIndex + 1}
@@ -157,6 +171,8 @@ const focusNextInput = (tableId, rowIndex, columnIndex) => {
               text-gray-500
 
               sm:text-xl
+
+              dark:text-gray-400
             "
           >
             {/* {rowCount} × {columnCount} */}
@@ -201,6 +217,10 @@ border-gray-300
 
     sm:h-10
     sm:w-10
+
+    dark:bg-gray-700
+    dark:border-gray-600
+    dark:text-blue-300
   "
 >
   {isCollapsed ? (
@@ -247,6 +267,8 @@ border-gray-300
           rounded-lg
           border
           border-gray-200
+
+          dark:border-gray-700
         "
       >
         <table
@@ -265,7 +287,7 @@ border-gray-300
           ====================================== */}
           {!isCollapsed && (
           <thead>
-            <tr className="bg-gray-100">
+            <tr className="bg-gray-100 dark:bg-gray-700">
               {Array.from(
                 { length: columnCount },
                 (_, columnIndex) => (
@@ -290,6 +312,9 @@ border-gray-300
                       sm:px-2
                       sm:py-2
                       sm:text-xl
+
+                      dark:border-gray-600
+                      dark:text-gray-200
                     "
                   >
                     {columnIndex + 1}
@@ -309,7 +334,7 @@ border-gray-300
               {table.rows.map((row, rowIndex) => (
               <tr
                 key={`row-${rowIndex}`}
-                className="hover:bg-gray-50"
+                className="hover:bg-gray-50 dark:hover:bg-gray-700/60"
               >
                 {row.map((value, columnIndex) => {
                   const inputId =
@@ -328,6 +353,8 @@ border-gray-300
                         border-gray-200
                         sm:h-10
                         sm:p-0
+
+                        dark:border-gray-700
                       "
                     >
                       <label
@@ -404,7 +431,7 @@ border-gray-300
     py-1
 
     text-center
-    text-xl
+    text-base
     text-gray-900
 
     outline-none
@@ -424,7 +451,13 @@ border-gray-300
     sm:min-w-[10px]
 
     sm:px-0
-    sm:text-xl
+    sm:text-base
+
+    dark:border-gray-600
+    dark:bg-gray-900
+    dark:text-gray-100
+    dark:placeholder:text-gray-600
+    dark:hover:border-gray-500
   "
 />
                     </td>
@@ -438,7 +471,7 @@ border-gray-300
               TỔNG CỘT
           ====================================== */}
           <tfoot>
-            <tr className="bg-blue-50">
+            <tr className="bg-blue-50 dark:bg-blue-900/30">
               {columnTotals.map((total, columnIndex) => (
                 <td
                   key={`total-${columnIndex}`}
@@ -460,6 +493,9 @@ border-gray-300
                     sm:px-2
                     sm:py-2
                     sm:text-xl
+
+                    dark:border-gray-700
+                    dark:text-blue-300
                   "
                 >
                   {total}
@@ -490,6 +526,8 @@ border-gray-300
           sm:mt-3
           sm:px-4
           sm:py-3
+
+          dark:bg-green-900/25
         "
       >
         <span
@@ -499,6 +537,8 @@ border-gray-300
             text-green-800
 
             sm:text-xl
+
+            dark:text-green-300
           "
         >
           Tổng hàng {tableIndex + 1}
@@ -511,6 +551,8 @@ border-gray-300
             text-green-700
 
             sm:text-lg
+
+            dark:text-green-300
           "
         >
           {tableTotal} kg
@@ -527,6 +569,28 @@ border-gray-300
 export default function ShrimpWeightTables() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [price, setPrice] = useState("");
+
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        try {
+            const saved = localStorage.getItem(DARK_MODE_KEY);
+            return saved === "true";
+        } catch (error) {
+            return false;
+        }
+    });
+
+    const [fontSizeKey, setFontSizeKey] = useState(() => {
+        try {
+            const saved = localStorage.getItem(FONT_SIZE_KEY);
+            const isValid = FONT_SIZE_OPTIONS.some(
+                (option) => option.key === saved
+            );
+            return isValid ? saved : "md";
+        } catch (error) {
+            return "md";
+        }
+    });
+
     const [tables, setTables] = useState(() => {
         try {
             const savedTables = localStorage.getItem(STORAGE_KEY);
@@ -570,6 +634,51 @@ export default function ShrimpWeightTables() {
             console.error("Không thể lưu dữ liệu:", error);
         }
     }, [tables]);
+
+    /**
+     * Bật/tắt darkmode: gắn/gỡ class "dark" trên thẻ <html>
+     * để các class Tailwind dạng dark:xxx hoạt động.
+     * Lưu ý: cần bật darkMode: "class" trong tailwind.config.js
+     */
+    useEffect(() => {
+        const root = document.documentElement;
+
+        if (isDarkMode) {
+            root.classList.add("dark");
+        } else {
+            root.classList.remove("dark");
+        }
+
+        try {
+            localStorage.setItem(
+                DARK_MODE_KEY,
+                String(isDarkMode)
+            );
+        } catch (error) {
+            console.error("Không thể lưu chế độ hiển thị:", error);
+        }
+    }, [isDarkMode]);
+
+    /**
+     * Thay đổi cỡ chữ toàn ứng dụng bằng cách chỉnh font-size
+     * gốc của <html>. Vì các class Tailwind (text-xl, text-base...)
+     * dùng đơn vị rem, thay đổi này sẽ tự động phóng to/thu nhỏ
+     * toàn bộ chữ trong ứng dụng theo cùng tỉ lệ.
+     */
+    useEffect(() => {
+        const option =
+            FONT_SIZE_OPTIONS.find(
+                (item) => item.key === fontSizeKey
+            ) || FONT_SIZE_OPTIONS[1];
+
+        document.documentElement.style.fontSize = `${option.px}px`;
+
+        try {
+            localStorage.setItem(FONT_SIZE_KEY, fontSizeKey);
+        } catch (error) {
+            console.error("Không thể lưu cỡ chữ:", error);
+        }
+    }, [fontSizeKey]);
 
   /**
    * Thay đổi input.
@@ -690,6 +799,8 @@ export default function ShrimpWeightTables() {
         sm:px-2
         sm:pt-7
         sm:pb-7
+
+        dark:bg-gray-950
       "
     >
       <div
@@ -699,28 +810,6 @@ export default function ShrimpWeightTables() {
           max-w-7xl
         "
       >
-        {/* =====================================
-            HEADER
-        ====================================== */}
-        {/* <header className="mb-3 sm:mb-5">
-       
-
-          <p
-            className="
-              mt-0.5
-              text-[11px]
-              leading-4
-              text-gray-500
-
-              sm:mt-1
-              sm:text-xl
-            "
-          >
-            Nhập số kg tôm. Tổng cột và tổng bảng
-            được tính tự động.
-          </p>
-        </header> */}
-
         {/* =====================================
             DANH SÁCH BẢNG
         ====================================== */}
@@ -755,6 +844,9 @@ export default function ShrimpWeightTables() {
     backdrop-blur-md
 
     pt-[env(safe-area-inset-top)]
+
+    dark:border-gray-800
+    dark:bg-gray-900/95
   "
 >
   <div
@@ -774,8 +866,8 @@ export default function ShrimpWeightTables() {
       sm:px-4
     "
   >
-    {/* Menu */}
-    <div className="relative">
+    {/* Menu + Darkmode */}
+    <div className="relative flex items-center gap-1.5">
       <button
         type="button"
         onClick={() => setIsMenuOpen((open) => !open)}
@@ -801,6 +893,10 @@ export default function ShrimpWeightTables() {
           focus:ring-gray-300
 
           active:scale-95
+
+          dark:text-gray-200
+          dark:hover:bg-gray-800
+          dark:focus:ring-gray-600
         "
       >
         {/* Icon 3 gạch */}
@@ -820,6 +916,74 @@ export default function ShrimpWeightTables() {
         </svg>
       </button>
 
+      {/* Nút bật/tắt darkmode */}
+      <button
+        type="button"
+        onClick={() => setIsDarkMode((value) => !value)}
+        aria-label={
+          isDarkMode ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"
+        }
+        className="
+          flex
+          h-10
+          w-10
+          items-center
+          justify-center
+
+          rounded-lg
+
+          text-gray-700
+
+          transition
+
+          hover:bg-gray-100
+
+          focus:outline-none
+          focus:ring-2
+          focus:ring-gray-300
+
+          active:scale-95
+
+          dark:text-yellow-300
+          dark:hover:bg-gray-800
+          dark:focus:ring-gray-600
+        "
+      >
+        {isDarkMode ? (
+          /* Icon mặt trời (đang ở chế độ tối, bấm để về sáng) */
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth="2"
+            stroke="currentColor"
+            className="h-5 w-5"
+          >
+            <circle cx="12" cy="12" r="4" />
+            <path
+              strokeLinecap="round"
+              d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+            />
+          </svg>
+        ) : (
+          /* Icon mặt trăng (đang ở chế độ sáng, bấm để sang tối) */
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth="2"
+            stroke="currentColor"
+            className="h-5 w-5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"
+            />
+          </svg>
+        )}
+      </button>
+
       {/* Menu dropdown */}
       {isMenuOpen && (
         <div
@@ -829,7 +993,7 @@ export default function ShrimpWeightTables() {
             top-12
             z-50
 
-            w-44
+            w-56
 
             overflow-hidden
             rounded-xl
@@ -839,8 +1003,69 @@ export default function ShrimpWeightTables() {
             bg-white
 
             shadow-lg
+
+            dark:border-gray-700
+            dark:bg-gray-800
           "
         >
+          {/* Cỡ chữ */}
+          <div
+            className="
+              px-4
+              py-3
+
+              border-b
+              border-gray-100
+
+              dark:border-gray-700
+            "
+          >
+            <p
+              className="
+                mb-2
+                text-xs
+                font-semibold
+                text-gray-500
+
+                dark:text-gray-400
+              "
+            >
+              Cỡ chữ
+            </p>
+
+            <div className="grid grid-cols-4 gap-1">
+              {FONT_SIZE_OPTIONS.map((option) => {
+                const isActive = option.key === fontSizeKey;
+
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setFontSizeKey(option.key)}
+                    aria-pressed={isActive}
+                    className={`
+                      rounded-lg
+                      border
+                      px-1.5
+                      py-1.5
+                      text-[11px]
+                      font-semibold
+                      transition
+
+                      ${
+                        isActive
+                          ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/40 dark:text-blue-300"
+                          : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                      }
+                    `}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={handleResetAll}
@@ -863,6 +1088,10 @@ export default function ShrimpWeightTables() {
               hover:bg-red-50
 
               active:bg-red-100
+
+              dark:text-red-400
+              dark:hover:bg-red-900/30
+              dark:active:bg-red-900/50
             "
           >
             {/* Icon reset */}
@@ -929,6 +1158,10 @@ export default function ShrimpWeightTables() {
 
         sm:min-h-11
         sm:px-5
+
+        dark:bg-gray-700
+        dark:hover:bg-gray-600
+        dark:focus:ring-gray-500
       "
     >
       <span className="mr-1 text-lg leading-none">
@@ -964,23 +1197,28 @@ export default function ShrimpWeightTables() {
 
     sm:pt-4
     sm:pb-[calc(14px+env(safe-area-inset-bottom))]
+
+    dark:border-gray-800
+    dark:bg-gray-900/95
   "
 >
   <div
-    className="
-      mx-auto
-      flex
-      w-full
-      max-w-7xl
-      items-center
-      justify-center
+ className="
+    mx-auto
+    flex
+    w-full
+    max-w-7xl
+    flex-wrap
+    items-center
+    justify-center
 
-      gap-2
-      px-2
+    gap-2
+    px-2
 
-      sm:gap-3
-      sm:px-4
-    "
+    sm:flex-nowrap
+    sm:gap-3
+    sm:px-4
+  "
   >
     {/* Tổng kg */}
     <div
@@ -997,6 +1235,9 @@ export default function ShrimpWeightTables() {
 
         sm:h-12
         sm:px-4
+
+        dark:border-green-900
+        dark:bg-green-900/25
       "
     >
       <span
@@ -1007,6 +1248,8 @@ export default function ShrimpWeightTables() {
           text-green-700
 
           sm:text-2xl
+
+          dark:text-green-300
         "
       >
         {grandTotal}
@@ -1020,6 +1263,8 @@ export default function ShrimpWeightTables() {
           text-green-700
 
           sm:text-xl
+
+          dark:text-green-300
         "
       >
         kg
@@ -1036,6 +1281,8 @@ export default function ShrimpWeightTables() {
         text-gray-400
 
         sm:text-2xl
+
+        dark:text-gray-500
       "
     >
       ×
@@ -1096,6 +1343,13 @@ export default function ShrimpWeightTables() {
         sm:h-12
         sm:w-[150px]
         sm:text-xl
+
+        dark:border-gray-600
+        dark:bg-gray-800
+        dark:text-gray-100
+        dark:placeholder:text-gray-500
+        dark:focus:border-green-500
+        dark:focus:ring-green-900/40
       "
     />
 
@@ -1109,6 +1363,8 @@ export default function ShrimpWeightTables() {
         text-gray-400
 
         sm:text-2xl
+
+        dark:text-gray-500
       "
     >
       =
@@ -1132,6 +1388,9 @@ export default function ShrimpWeightTables() {
 
         sm:h-12
         sm:px-4
+
+        dark:border-blue-900
+        dark:bg-blue-900/25
       "
     >
       <span
@@ -1142,6 +1401,8 @@ export default function ShrimpWeightTables() {
           text-blue-700
 
           sm:text-2xl
+
+          dark:text-blue-300
         "
       >
         {totalMoney.toLocaleString("vi-VN")}
@@ -1155,6 +1416,8 @@ export default function ShrimpWeightTables() {
           text-blue-700
 
           sm:text-xl
+
+          dark:text-blue-300
         "
       >
         đ
