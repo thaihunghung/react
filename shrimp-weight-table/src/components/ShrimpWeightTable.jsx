@@ -387,7 +387,7 @@ export default function ShrimpWeightTables() {
           onClick={() => setIsPaymentModalOpen(false)}
         >
           <div
-            className="w-full max-w-[400px] rounded-2xl bg-white p-5 shadow-2xl dark:bg-gray-900 h-[500px]"
+            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl dark:bg-gray-900 max-h-[85vh] overflow-y-auto"
             onClick={(event) => event.stopPropagation()}
           >
             {/* Header */}
