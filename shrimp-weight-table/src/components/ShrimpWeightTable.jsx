@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const STORAGE_KEY = "shrimp-weight-tables";
 
@@ -57,12 +57,29 @@ function Table({
   onAddColumn,
 }) {
   const rowCount = table.rows.length;
-
+  const inputRefs = useRef([]);
   const columnCount =
     table.rows.length > 0
       ? table.rows[0].length
       : INITIAL_COLUMNS;
 
+const focusNextInput = (tableId, rowIndex, columnIndex) => {
+  const tableInputs = inputRefs.current[tableId];
+
+  if (!tableInputs) return;
+
+  // Xuống hàng tiếp theo
+  if (rowIndex + 1 < rowCount) {
+    tableInputs[rowIndex + 1]?.[columnIndex]?.focus();
+    return;
+  }
+
+  // Hết hàng → sang cột tiếp theo
+  if (columnIndex + 1 < columnCount) {
+    tableInputs[0]?.[columnIndex + 1]?.focus();
+  }
+};
+  const [isCollapsed, setIsCollapsed] = useState(false);
   /**
    * Tổng từng cột.
    */
@@ -124,7 +141,7 @@ function Table({
           <h2
             className="
               truncate
-              text-base
+              text-xl
               font-bold
               text-gray-900
 
@@ -139,48 +156,85 @@ function Table({
               text-[11px]
               text-gray-500
 
-              sm:text-base
+              sm:text-xl
             "
           >
             {/* {rowCount} × {columnCount} */}
           </p>
         </div>
 
-        {/* Thêm cột */}
-        {/* <button
-          type="button"
-          onClick={() => onAddColumn(table.id)}
-          className="
-            min-h-9
-            shrink-0
-            rounded-lg
-            bg-blue-600
-            px-3
-            py-1.5
+          
+          
+<button
+  type="button"
+  onClick={() => setIsCollapsed((prev) => !prev)}
+  aria-label={isCollapsed ? "Mở bảng" : "Thu gọn bảng"}
+  aria-expanded={!isCollapsed}
+  className="
+    flex
+    h-9
+    w-9
+    shrink-0
+    items-center
+    justify-center
+    text-blue-700
+    rounded-lg
+    bg-gray-100
 
-            text-base
-            font-semibold
-            text-white
+    border
+border-gray-300
+    text-xl
+    font-bold
+    leading-none
 
-            transition
 
-            hover:bg-blue-700
+    transition
 
-            focus:outline-none
-            focus:ring-2
-            focus:ring-blue-500
-            focus:ring-offset-1
+    
 
-            active:bg-blue-800
+    focus:outline-none
+    focus:ring-2
 
-            sm:min-h-10
-            sm:px-4
-            sm:py-2
-            sm:text-base
-          "
-        >
-          + Cột
-        </button> */}
+    focus:ring-offset-1
+
+
+
+    sm:h-10
+    sm:w-10
+  "
+>
+  {isCollapsed ? (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth="2.5"
+      stroke="currentColor"
+      className="h-5 w-5"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 5v14M5 12h14"
+      />
+    </svg>
+  ) : (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth="2.5"
+      stroke="currentColor"
+      className="h-5 w-5"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M5 12h14"
+      />
+    </svg>
+  )}
+</button>
       </div>
 
       {/* =========================================
@@ -209,6 +263,7 @@ function Table({
           {/* =====================================
               HEADER
           ====================================== */}
+          {!isCollapsed && (
           <thead>
             <tr className="bg-gray-100">
               {Array.from(
@@ -234,7 +289,7 @@ function Table({
                       sm:h-10
                       sm:px-2
                       sm:py-2
-                      sm:text-base
+                      sm:text-xl
                     "
                   >
                     {columnIndex + 1}
@@ -243,12 +298,15 @@ function Table({
               )}
             </tr>
           </thead>
-
+          
+          )}
           {/* =====================================
-              BODY
-          ====================================== */}
-          <tbody>
-            {table.rows.map((row, rowIndex) => (
+                BODY
+            ====================================== */}
+          {!isCollapsed && (
+            
+            <tbody>
+              {table.rows.map((row, rowIndex) => (
               <tr
                 key={`row-${rowIndex}`}
                 className="hover:bg-gray-50"
@@ -267,7 +325,7 @@ function Table({
                         border-gray-200
 
                         p-1
-                        bo
+                        border-gray-200
                         sm:h-10
                         sm:p-0
                       "
@@ -281,75 +339,101 @@ function Table({
                         cột {columnIndex + 1}
                       </label>
 
-                      <input
-                        id={inputId}
-                        type="number"
-                        min="0"
-                        step="any"
-                        inputMode="decimal"
-                        value={value}
-                        onChange={(event) =>
-                          onCellChange(
-                            table.id,
-                            rowIndex,
-                            columnIndex,
-                            event.target.value
-                          )
-                        }
-                        aria-label={`Bảng ${
-                          tableIndex + 1
-                        }, hàng ${
-                          rowIndex + 1
-                        }, cột ${
-                          columnIndex + 1
-                        }`}
-                        placeholder="0"
-                        className="
-                          block
+<input
+  id={inputId}
+  ref={(element) => {
+    if (!inputRefs.current[table.id]) {
+      inputRefs.current[table.id] = [];
+    }
 
-                          h-8
-                          w-full
+    if (!inputRefs.current[table.id][rowIndex]) {
+      inputRefs.current[table.id][rowIndex] = [];
+    }
 
-                          rounded-md
-                          border
-                          border-gray-300
+    inputRefs.current[table.id][rowIndex][columnIndex] = element;
+  }}
+  type="number"
+  min="0"
+  step="any"
+  inputMode="decimal"
+  tabIndex={columnIndex * rowCount + rowIndex + 1}
+  value={value}
+  onChange={(event) =>
+    onCellChange(
+      table.id,
+      rowIndex,
+      columnIndex,
+      event.target.value
+    )
+  }
+  onKeyDown={(event) => {
+    if (
+      event.key === "Enter" ||
+      event.key === "ArrowDown"
+    ) {
+      event.preventDefault();
 
-                          bg-white
+      focusNextInput(
+        table.id,
+        rowIndex,
+        columnIndex
+      );
+    }
+  }}
+  aria-label={`Bảng ${
+    tableIndex + 1
+  }, hàng ${
+    rowIndex + 1
+  }, cột ${
+    columnIndex + 1
+  }`}
+  placeholder="0"
+  className="
+    block
 
-                          px-1
-                          py-1
+    h-8
+    w-full
 
-                          text-center
-                          text-base
-                          text-gray-900
+    rounded-md
+    border
+    border-gray-300
 
-                          outline-none
+    bg-white
 
-                          transition
+    px-1
+    py-1
 
-                          placeholder:text-gray-400
+    text-center
+    text-xl
+    text-gray-900
 
-                          hover:border-gray-400
+    outline-none
 
-                          focus:border-blue-500
-                          focus:ring-1
-                          focus:ring-blue-500/30
+    transition
 
-                          sm:h-9
-                          sm:w-full
-                          sm:min-w-[10px]
-                
-                          sm:px-0
-                          sm:text-base
-                        "
-                      />
+    placeholder:text-gray-400
+
+    hover:border-gray-400
+
+    focus:border-blue-500
+    focus:ring-1
+    focus:ring-blue-500/30
+
+    sm:h-9
+    sm:w-full
+    sm:min-w-[10px]
+
+    sm:px-0
+    sm:text-xl
+  "
+/>
                     </td>
                   );
                 })}
               </tr>
             ))}
           </tbody>
-
+            )}
           {/* =====================================
               TỔNG CỘT
           ====================================== */}
@@ -367,14 +451,15 @@ function Table({
                     py-1
 
                     text-center
-                    text-base
+                    text-xl
+
                     font-bold
                     text-blue-700
 
                     sm:h-10
                     sm:px-2
                     sm:py-2
-                    sm:text-base
+                    sm:text-xl
                   "
                 >
                   {total}
@@ -409,11 +494,11 @@ function Table({
       >
         <span
           className="
-            text-base
+            text-xl
             font-semibold
             text-green-800
 
-            sm:text-base
+            sm:text-xl
           "
         >
           Tổng hàng {tableIndex + 1}
@@ -421,7 +506,7 @@ function Table({
 
         <span
           className="
-            text-base
+            text-xl
             font-extrabold
             text-green-700
 
@@ -628,7 +713,7 @@ export default function ShrimpWeightTables() {
               text-gray-500
 
               sm:mt-1
-              sm:text-base
+              sm:text-xl
             "
           >
             Nhập số kg tôm. Tổng cột và tổng bảng
@@ -825,7 +910,7 @@ export default function ShrimpWeightTables() {
         px-4
         py-2
 
-        text-base
+        text-xl
         font-bold
         text-white
 
@@ -930,11 +1015,11 @@ export default function ShrimpWeightTables() {
       <span
         className="
           ml-1
-          text-base
+          text-xl
           font-bold
           text-green-700
 
-          sm:text-base
+          sm:text-xl
         "
       >
         kg
@@ -992,7 +1077,7 @@ export default function ShrimpWeightTables() {
         px-2
 
         text-center
-        text-base
+        text-xl
         font-bold
         text-gray-800
 
@@ -1000,7 +1085,7 @@ export default function ShrimpWeightTables() {
 
         transition
 
-        placeholder:text-base
+        placeholder:text-xl
         placeholder:font-medium
         placeholder:text-gray-400
 
@@ -1010,7 +1095,7 @@ export default function ShrimpWeightTables() {
 
         sm:h-12
         sm:w-[150px]
-        sm:text-base
+        sm:text-xl
       "
     />
 
@@ -1051,7 +1136,7 @@ export default function ShrimpWeightTables() {
     >
       <span
         className="
-          text-base
+          text-xl
           font-extrabold
           leading-none
           text-blue-700
@@ -1065,11 +1150,11 @@ export default function ShrimpWeightTables() {
       <span
         className="
           ml-1
-          text-base
+          text-xl
           font-bold
           text-blue-700
 
-          sm:text-base
+          sm:text-xl
         "
       >
         đ
